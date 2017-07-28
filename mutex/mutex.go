@@ -128,10 +128,23 @@ func (m *Mutex) lock() (err errors) {
     if resp.Action == "delete" || resp.Action == "expire" {
       // try to create this key again
       if resp, err := m.KeysAPI.set(m.Context, m.LockPath, m.UserId, options); err != nil {
-        return nil
+        return err
       } else {
         return nil
       }
     }
   }
+}
+
+func (m *Mutex) UnLock() (err errors) {
+  defer m.Mutex.UnLock()
+  for retry := 0; retry < HTTP_RETRY_TIMES; retry++ {
+    resp, err := m.KeysAPI.Delete(m.Context, m.LockPath, nil)
+    if err != nil {
+      time.Sleep(NEXT_REQUEST_WAIT_SECOND * time.Second)
+    } else {
+      return nil
+    }
+  }
+  return err
 }
